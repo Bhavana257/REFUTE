@@ -1,55 +1,24 @@
-import os
-from google import genai
+"""
+gemini_service.py
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
-
-def refute_claim(claim: str) -> dict:
-    """
-    Uses Gemini 3 to analyze and refute a claim.
-    Always returns all required fields to match ClaimResponse schema.
-    """
-
-    prompt = f"""
-You are a critical reasoning assistant.
-
-Analyze the following claim and respond in STRICT JSON with the keys:
-verdict, argument, reasoning, counter_argument.
-
-Claim:
-"{claim}"
-
-Rules:
-- verdict must be a short statement (True / False / Misleading)
-- argument must challenge the claim directly
-- reasoning must explain logically
-- counter_argument must rebut a possible defense
-- Output ONLY valid JSON
+NOTE:
+This file is intentionally kept as a compatibility layer.
+All core reasoning is delegated to the Marathon Agent orchestrator.
 """
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-1.5-pro",
-            contents=prompt
-        )
+from orchestrator import run_marathon_refutation
 
-        text = response.text.strip()
 
-        import json
-        data = json.loads(text)
+def refute_statement(statement: str) -> dict:
+    """
+    Legacy-compatible entry point.
+    Internally delegates to the Marathon Agent.
+    """
 
-        return {
-            "verdict": data.get("verdict", "Unclear"),
-            "argument": data.get("argument", "No argument generated."),
-            "reasoning": data.get("reasoning", "No reasoning provided."),
-            "counter_argument": data.get("counter_argument", "No counter-argument generated.")
-        }
+    result = run_marathon_refutation(statement)
 
-    except Exception as e:
-
-        return {
-            "verdict": "Error",
-            "argument": "The system failed to analyze the claim.",
-            "reasoning": str(e),
-            "counter_argument": "Please try again later."
-        }
+    return {
+        "verdict": result["final_verdict"],
+        "confidence": result["final_confidence"],
+        "reasoning": result["thought_state"]
+    }

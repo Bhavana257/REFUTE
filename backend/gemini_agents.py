@@ -2,22 +2,23 @@ from google import genai
 import json
 import os
 
+# Initialize Gemini client
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 def call_gemini(prompt: str) -> dict:
     """
-    Executes a Gemini 3 call and enforces JSON-only output.
+    Executes a Gemini 3 Pro call and enforces JSON-only output.
     """
     response = client.models.generate_content(
-        model="gemini-2.5-pro",
+        model="models/gemini-3-pro-preview",
         contents=prompt
     )
 
     try:
         return json.loads(response.text)
     except json.JSONDecodeError:
-        raise ValueError("Gemini returned non-JSON output")
+        raise ValueError(f"Gemini returned non-JSON output:\n{response.text}")
 
 
 def initial_analysis_agent(claim: str) -> dict:
@@ -25,21 +26,20 @@ def initial_analysis_agent(claim: str) -> dict:
 You are an analytical reasoning agent.
 
 Task:
-Given a user claim, construct the strongest possible argument supporting the claim.
+Construct the strongest possible argument supporting the claim.
 
 Rules:
-- Assume the claim is true unless proven otherwise
+- Assume the claim is true initially
 - Explicitly list assumptions
-- Avoid emotional language
-- Do not consider counterarguments yet
+- Do not include counterarguments
 
-Output strictly in JSON with keys:
+Output JSON with:
 - argument
 - assumptions
-- initial_confidence (0–100)
+- initial_confidence (0-100)
 
 Claim:
-\"{claim}\"
+{claim}
 """
     return call_gemini(prompt)
 
@@ -48,20 +48,22 @@ def critic_agent(claim: str, argument: str, assumptions: list) -> dict:
     prompt = f"""
 You are an adversarial critic agent.
 
-Your job is to challenge the reasoning produced by another agent.
+Task:
+Rigorously challenge the reasoning.
 
 Rules:
-- Identify logical gaps and unstated assumptions
-- Provide counterexamples when possible
-- Do NOT propose fixes
+- Identify logical gaps
+- Challenge assumptions
+- Provide counterexamples
+- Do not suggest fixes
 
-Output strictly in JSON with keys:
+Output JSON with:
 - critiques (array)
 - counter_argument
 - confidence_reduction_reason
 
 Claim:
-\"{claim}\"
+{claim}
 
 Argument:
 {argument}
@@ -76,21 +78,21 @@ def revision_agent(claim: str, argument: str, critiques: list, counter_argument:
     prompt = f"""
 You are a revision agent.
 
-Revise the original argument after receiving adversarial critiques.
+Task:
+Revise the argument after critique.
 
 Rules:
 - You may weaken or reject the claim
-- Acknowledge uncertainty
-- Update confidence
+- Explicitly acknowledge uncertainty
 
-Output strictly in JSON with keys:
+Output JSON with:
 - revised_argument
 - revised_verdict (True / False / Inconclusive)
-- revised_confidence (0–100)
+- revised_confidence (0-100)
 - unresolved_uncertainties
 
 Claim:
-\"{claim}\"
+{claim}
 
 Original Argument:
 {argument}
@@ -104,18 +106,22 @@ Counter Argument:
     return call_gemini(prompt)
 
 
-def stability_agent(revised_argument: str, revised_verdict: str,
-                    revised_confidence: int, uncertainties: list) -> dict:
+def stability_agent(
+    revised_argument: str,
+    revised_verdict: str,
+    revised_confidence: int,
+    uncertainties: list
+) -> dict:
     prompt = f"""
 You are a stability evaluator.
 
-Determine whether the reasoning process has stabilized.
+Determine whether reasoning has stabilized.
 
 Rules:
-- If confidence < 60 OR uncertainties are critical, mark unstable
-- Otherwise finalize
+- If confidence < 60 OR uncertainties are critical → unstable
+- Else → stable
 
-Output strictly in JSON with keys:
+Output JSON with:
 - is_stable (true/false)
 - final_verdict
 - final_confidence
