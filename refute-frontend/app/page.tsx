@@ -6,7 +6,11 @@ import Image from "next/image";
 
 export default function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [claim, setClaim] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -14,8 +18,7 @@ export default function HomePage() {
 
     const context = canvas.getContext("2d");
     if (!context) return;
-
-    const ctx = context; // ✅ non-null forever
+    const ctx = context;
 
     let w = (canvas.width = window.innerWidth);
     let h = (canvas.height = window.innerHeight);
@@ -70,15 +73,39 @@ export default function HomePage() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  const handleRefute = async () => {
+    if (!claim.trim()) return;
+
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/refute`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ claim }),
+        }
+      );
+
+      const data = await res.json();
+      setResult(data);
+    } catch (err) {
+      console.error(err);
+      alert("Backend error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center">
-      {/* Animated Network Background */}
+      {/* Background */}
       <canvas ref={canvasRef} className="absolute inset-0 z-0" />
-
-      {/* Radial Glow */}
       <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15),transparent_70%)]" />
 
-      {/* Main Content */}
+      {/* Content */}
       <div className="relative z-10 w-full max-w-3xl px-6">
         {/* Logo */}
         <div className="flex justify-center mb-6">
@@ -93,35 +120,39 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Title */}
-        <h1 className="text-5xl font-bold text-center tracking-tight">
-          Refute
-        </h1>
+        <h1 className="text-5xl font-bold text-center">Refute</h1>
         <p className="text-center text-blue-200/70 mt-3 mb-10">
           Challenge claims through structured reasoning and intelligent rebuttal.
         </p>
 
-        {/* Card */}
-        <div className="relative bg-neutral-900/80 backdrop-blur-2xl rounded-3xl p-8 shadow-[0_0_80px_rgba(59,130,246,0.25)] border border-white/10">
+        {/* Input Card */}
+        <div className="bg-neutral-900/80 backdrop-blur-2xl rounded-3xl p-8 shadow-[0_0_80px_rgba(59,130,246,0.25)] border border-white/10">
           <textarea
             value={claim}
             onChange={(e) => setClaim(e.target.value)}
             placeholder="Enter a claim you want to challenge…"
-            className="w-full h-36 resize-none bg-black/60 rounded-2xl border border-white/10 p-5 text-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            className="w-full h-36 resize-none bg-black/60 rounded-2xl border border-white/10 p-5 text-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
           <button
-            className="mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 font-semibold text-lg hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/40 transition-all"
-            onClick={() => {
-              if (!claim.trim()) return;
-              alert("Frontend is wired. Backend call will be enabled next.");
-            }}
+            onClick={handleRefute}
+            disabled={loading}
+            className="mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 font-semibold text-lg hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/40 transition-all disabled:opacity-50"
           >
-            Refute Claim
+            {loading ? "Refuting..." : "Refute Claim"}
           </button>
         </div>
 
-        {/* Footer */}
+        {/* Result */}
+        {result && (
+          <div className="mt-8 bg-black/60 rounded-2xl p-6 border border-white/10 space-y-4">
+            <div><strong>Verdict:</strong> {result.verdict}</div>
+            <div><strong>Argument:</strong> {result.argument}</div>
+            <div><strong>Counter-Argument:</strong> {result.counter_argument}</div>
+            <div><strong>Reasoning:</strong> {result.reasoning}</div>
+          </div>
+        )}
+
         <p className="text-center text-xs text-white/30 mt-6">
           Powered by Gemini 3 • Built for critical thinking
         </p>
