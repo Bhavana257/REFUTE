@@ -7,21 +7,13 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://refute.vercel.app",
-        "http://localhost:3000"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-@app.get("/")
-def root():
-    return {"status": "Refute backend is live"}
-
-
-@app.post("/refute", response_model=ClaimResponse)
-async def refute(payload: ClaimRequest):
-    return refute_claim(payload.claim)
+@app.post("/challenge", response_model=ClaimResponse)
+async def challenge_claim(payload: ClaimRequest):
+    return await refute_claim(payload.claim)
