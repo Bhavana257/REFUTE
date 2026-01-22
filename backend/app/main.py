@@ -1,22 +1,27 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.schemas import ClaimRequest
-from app.services.gemini_service import GeminiService
+from app.schemas import ClaimRequest, ClaimResponse
+from app.services.gemini_service import refute_claim
 
 app = FastAPI()
 
-# 🔥 CORS FIX (THIS IS REQUIRED)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # frontend
+    allow_origins=[
+        "https://refute.vercel.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-gemini_service = GeminiService()
+
+@app.get("/")
+def root():
+    return {"status": "Refute backend is live"}
 
 
-@app.post("/challenge")
-def challenge_claim(request: ClaimRequest):
-    return gemini_service.challenge_claim(request.claim)
+@app.post("/refute", response_model=ClaimResponse)
+async def refute(payload: ClaimRequest):
+    return refute_claim(payload.claim)
