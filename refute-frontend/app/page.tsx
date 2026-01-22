@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
 
+const API_URL = "https://refute.onrender.com/challenge";
+
 export default function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
   const [claim, setClaim] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
@@ -80,19 +81,17 @@ export default function HomePage() {
     setResult(null);
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/refute`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ claim }),
-        }
-      );
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claim }),
+      });
+
+      if (!res.ok) throw new Error("Backend error");
 
       const data = await res.json();
       setResult(data);
     } catch (err) {
-      console.error(err);
       alert("Backend error. Please try again.");
     } finally {
       setLoading(false);
@@ -101,21 +100,17 @@ export default function HomePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center">
-      {/* Background */}
       <canvas ref={canvasRef} className="absolute inset-0 z-0" />
-      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15),transparent_70%)]" />
 
-      {/* Content */}
       <div className="relative z-10 w-full max-w-3xl px-6">
-        {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="relative w-20 h-20">
             <Image
               src="/refute-logo.svg"
               alt="Refute Logo"
               fill
+              className="object-contain"
               priority
-              className="object-contain drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]"
             />
           </div>
         </div>
@@ -125,37 +120,31 @@ export default function HomePage() {
           Challenge claims through structured reasoning and intelligent rebuttal.
         </p>
 
-        {/* Input Card */}
-        <div className="bg-neutral-900/80 backdrop-blur-2xl rounded-3xl p-8 shadow-[0_0_80px_rgba(59,130,246,0.25)] border border-white/10">
+        <div className="bg-neutral-900/80 rounded-3xl p-8 border border-white/10">
           <textarea
             value={claim}
             onChange={(e) => setClaim(e.target.value)}
             placeholder="Enter a claim you want to challenge…"
-            className="w-full h-36 resize-none bg-black/60 rounded-2xl border border-white/10 p-5 text-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full h-32 bg-black/60 rounded-xl p-4"
           />
 
           <button
             onClick={handleRefute}
             disabled={loading}
-            className="mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 font-semibold text-lg hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/40 transition-all disabled:opacity-50"
+            className="mt-6 w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500"
           >
             {loading ? "Refuting..." : "Refute Claim"}
           </button>
+
+          {result && (
+            <div className="mt-8 space-y-4">
+              <p><b>Verdict:</b> {result.verdict}</p>
+              <p><b>Argument:</b> {result.argument}</p>
+              <p><b>Counter-Argument:</b> {result.counter_argument}</p>
+              <p><b>Reasoning:</b> {result.reasoning}</p>
+            </div>
+          )}
         </div>
-
-        {/* Result */}
-        {result && (
-          <div className="mt-8 bg-black/60 rounded-2xl p-6 border border-white/10 space-y-4">
-            <div><strong>Verdict:</strong> {result.verdict}</div>
-            <div><strong>Argument:</strong> {result.argument}</div>
-            <div><strong>Counter-Argument:</strong> {result.counter_argument}</div>
-            <div><strong>Reasoning:</strong> {result.reasoning}</div>
-          </div>
-        )}
-
-        <p className="text-center text-xs text-white/30 mt-6">
-          Powered by Gemini 3 • Built for critical thinking
-        </p>
       </div>
     </main>
   );
