@@ -1,0 +1,6 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Left R -->
+  <path d="M20 15 H45 C60 15 70 25 70 40 C70 52 62 60 50 62 L70 85 H55 L40 65 H20 Z" fill="#2563EB"></path>
+  <!-- Right split -->
+  <path d="M48 15 H70 C82 15 90 24 90 38 C90 50 82 58 72 60 L88 85 H72 L58 65 H48 Z" fill="#22D3EE" opacity="0.8"></path>
+</svg>
