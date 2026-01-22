@@ -1,38 +1,55 @@
 import os
-import google.generativeai as genai
-from fastapi import HTTPException
+from google import genai
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
-model = genai.GenerativeModel("gemini-1.5-flash")
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
-async def refute_claim(claim: str):
-    if not os.getenv("GEMINI_API_KEY"):
-        raise HTTPException(status_code=500, detail="Gemini API key not configured")
+def refute_claim(claim: str) -> dict:
+    """
+    Uses Gemini 3 to analyze and refute a claim.
+    Always returns all required fields to match ClaimResponse schema.
+    """
 
-    try:
-        prompt = f"""
-You are a critical thinking assistant.
+    prompt = f"""
+You are a critical reasoning assistant.
 
-Analyze the following claim and respond with:
-- verdict (True / False / Misleading)
-- argument
-- counter_argument
-- reasoning
+Analyze the following claim and respond in STRICT JSON with the keys:
+verdict, argument, reasoning, counter_argument.
 
-Claim: "{claim}"
+Claim:
+"{claim}"
+
+Rules:
+- verdict must be a short statement (True / False / Misleading)
+- argument must challenge the claim directly
+- reasoning must explain logically
+- counter_argument must rebut a possible defense
+- Output ONLY valid JSON
 """
 
-        response = model.generate_content(prompt)
+    try:
+        response = client.models.generate_content(
+            model="gemini-1.5-pro",
+            contents=prompt
+        )
+
         text = response.text.strip()
 
+        import json
+        data = json.loads(text)
+
         return {
-            "verdict": "Refuted",
-            "argument": text,
-            "counter_argument": text,
-            "reasoning": text,
+            "verdict": data.get("verdict", "Unclear"),
+            "argument": data.get("argument", "No argument generated."),
+            "reasoning": data.get("reasoning", "No reasoning provided."),
+            "counter_argument": data.get("counter_argument", "No counter-argument generated.")
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+        return {
+            "verdict": "Error",
+            "argument": "The system failed to analyze the claim.",
+            "reasoning": str(e),
+            "counter_argument": "Please try again later."
+        }

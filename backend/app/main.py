@@ -17,3 +17,4 @@ app.add_middleware(
 @app.post("/challenge", response_model=ClaimResponse)
 async def challenge_claim(payload: ClaimRequest):
     return await refute_claim(payload.claim)
+    return result
