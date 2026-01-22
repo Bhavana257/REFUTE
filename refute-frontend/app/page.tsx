@@ -4,26 +4,18 @@ import { useEffect, useRef, useState } from "react";
 
 import Image from "next/image";
 
-type RefuteResponse = {
-  argument: string;
-  counter_argument: string;
-  reasoning: string;
-  verdict: string;
-};
-
 export default function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [claim, setClaim] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<RefuteResponse | null>(null);
-  const [error, setError] = useState("");
 
-  /* ================== BACKGROUND ANIMATION ================== */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    const ctx = context; // ✅ non-null forever
 
     let w = (canvas.width = window.innerWidth);
     let h = (canvas.height = window.innerHeight);
@@ -35,11 +27,13 @@ export default function HomePage() {
       vy: (Math.random() - 0.5) * 0.4,
     }));
 
-    function animate() {
+    const animate = () => {
       ctx.clearRect(0, 0, w, h);
+
       nodes.forEach((n, i) => {
         n.x += n.vx;
         n.y += n.vy;
+
         if (n.x < 0 || n.x > w) n.vx *= -1;
         if (n.y < 0 || n.y > h) n.vy *= -1;
 
@@ -61,49 +55,31 @@ export default function HomePage() {
           }
         }
       });
+
       requestAnimationFrame(animate);
-    }
+    };
 
     animate();
-    window.addEventListener("resize", () => {
+
+    const resize = () => {
       w = canvas.width = window.innerWidth;
       h = canvas.height = window.innerHeight;
-    });
+    };
+
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
   }, []);
 
-  /* ================== API CALL ================== */
-  const handleRefute = async () => {
-    if (!claim.trim()) return;
-
-    setLoading(true);
-    setError("");
-    setResult(null);
-
-    try {
-      const res = await fetch("http://127.0.0.1:8000/challenge", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claim }),
-      });
-
-      if (!res.ok) throw new Error("Backend error");
-
-      const data = await res.json();
-      setResult(data);
-    } catch (err) {
-      setError("Failed to fetch response from backend");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* ================== UI ================== */
   return (
-    <main className="relative min-h-screen bg-black text-white flex items-center justify-center overflow-hidden">
+    <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center">
+      {/* Animated Network Background */}
       <canvas ref={canvasRef} className="absolute inset-0 z-0" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15),transparent_70%)] z-0" />
 
-      <div className="relative z-10 max-w-3xl w-full px-6">
+      {/* Radial Glow */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.15),transparent_70%)]" />
+
+      {/* Main Content */}
+      <div className="relative z-10 w-full max-w-3xl px-6">
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <div className="relative w-20 h-20">
@@ -111,57 +87,45 @@ export default function HomePage() {
               src="/refute-logo.svg"
               alt="Refute Logo"
               fill
-              className="object-contain"
               priority
+              className="object-contain drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]"
             />
           </div>
         </div>
 
-        <h1 className="text-5xl font-bold text-center">Refute</h1>
+        {/* Title */}
+        <h1 className="text-5xl font-bold text-center tracking-tight">
+          Refute
+        </h1>
         <p className="text-center text-blue-200/70 mt-3 mb-10">
-          Challenge claims through structured reasoning
+          Challenge claims through structured reasoning and intelligent rebuttal.
         </p>
 
-        <div className="bg-neutral-900/80 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+        {/* Card */}
+        <div className="relative bg-neutral-900/80 backdrop-blur-2xl rounded-3xl p-8 shadow-[0_0_80px_rgba(59,130,246,0.25)] border border-white/10">
           <textarea
             value={claim}
             onChange={(e) => setClaim(e.target.value)}
-            placeholder="Enter a claim to challenge..."
-            className="w-full h-32 resize-none rounded-xl bg-black/60 border border-white/10 p-4 text-lg focus:outline-none"
+            placeholder="Enter a claim you want to challenge…"
+            className="w-full h-36 resize-none bg-black/60 rounded-2xl border border-white/10 p-5 text-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
           />
 
           <button
-            onClick={handleRefute}
-            disabled={loading}
-            className="mt-6 w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 font-semibold hover:scale-[1.02] transition"
+            className="mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 font-semibold text-lg hover:scale-[1.02] hover:shadow-xl hover:shadow-blue-500/40 transition-all"
+            onClick={() => {
+              if (!claim.trim()) return;
+              alert("Frontend is wired. Backend call will be enabled next.");
+            }}
           >
-            {loading ? "Refuting..." : "Refute Claim"}
+            Refute Claim
           </button>
         </div>
 
-        {/* RESULTS */}
-        {error && (
-          <p className="text-red-400 text-center mt-6">{error}</p>
-        )}
-
-        {result && (
-          <div className="mt-10 space-y-4 bg-black/60 rounded-2xl p-6 border border-white/10">
-            <Section title="Argument" text={result.argument} />
-            <Section title="Counter-Argument" text={result.counter_argument} />
-            <Section title="Reasoning" text={result.reasoning} />
-            <Section title="Verdict" text={result.verdict} />
-          </div>
-        )}
+        {/* Footer */}
+        <p className="text-center text-xs text-white/30 mt-6">
+          Powered by Gemini 3 • Built for critical thinking
+        </p>
       </div>
     </main>
-  );
-}
-
-function Section({ title, text }: { title: string; text: string }) {
-  return (
-    <div>
-      <h3 className="text-blue-400 font-semibold mb-1">{title}</h3>
-      <p className="text-white/80 leading-relaxed">{text}</p>
-    </div>
   );
 }
