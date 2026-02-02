@@ -1,150 +1,111 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
-import Image from "next/image";
+type RefuteResponse = {
+  verdict: string;
+  argument: string;
+  counter_argument: string;
+  reasoning: string[];
+};
 
-const API_URL = "https://refute.onrender.com/challenge";
-
-export default function HomePage() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+export default function Home() {
   const [claim, setClaim] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<RefuteResponse | null>(null);
 
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    const ctx = context;
-
-    let w = (canvas.width = window.innerWidth);
-    let h = (canvas.height = window.innerHeight);
-
-    const nodes = Array.from({ length: 90 }).map(() => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 0.4,
-      vy: (Math.random() - 0.5) * 0.4,
-    }));
-
-    const animate = () => {
-      ctx.clearRect(0, 0, w, h);
-
-      nodes.forEach((n, i) => {
-        n.x += n.vx;
-        n.y += n.vy;
-
-        if (n.x < 0 || n.x > w) n.vx *= -1;
-        if (n.y < 0 || n.y > h) n.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = "#93c5fd";
-        ctx.fill();
-
-        for (let j = i + 1; j < nodes.length; j++) {
-          const m = nodes[j];
-          const d = Math.hypot(n.x - m.x, n.y - m.y);
-          if (d < 160) {
-            ctx.strokeStyle = `rgba(147,197,253,${1 - d / 160})`;
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(n.x, n.y);
-            ctx.lineTo(m.x, m.y);
-            ctx.stroke();
-          }
-        }
-      });
-
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    const resize = () => {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  const handleRefute = async () => {
+  const handleSubmit = async () => {
     if (!claim.trim()) return;
-
     setLoading(true);
     setResult(null);
 
-    try {
-      const res = await fetch(API_URL, {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/refute`,
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ claim }),
-      });
+      }
+    );
 
-      if (!res.ok) throw new Error("Backend error");
-
-      const data = await res.json();
-      setResult(data);
-    } catch (err) {
-      alert("Backend error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    const data = await res.json();
+    setResult(data);
+    setLoading(false);
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-black text-white flex items-center justify-center">
-      <canvas ref={canvasRef} className="absolute inset-0 z-0" />
+    <main className="relative min-h-screen flex justify-center px-6 py-20 text-neutral-200">
+      {/* Background */}
+      <div className="ai-bg" />
 
-      <div className="relative z-10 w-full max-w-3xl px-6">
-        <div className="flex justify-center mb-6">
-          <div className="relative w-20 h-20">
-            <Image
-              src="/refute-logo.svg"
-              alt="Refute Logo"
-              fill
-              className="object-contain"
-              priority
-            />
+      <div className="w-full max-w-4xl space-y-14">
+        {/* Header */}
+        <header className="text-center space-y-5">
+          <div className="flex justify-center">
+            <div className="text-6xl font-extrabold tracking-tight text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+              R
+            </div>
           </div>
-        </div>
 
-        <h1 className="text-5xl font-bold text-center">Refute</h1>
-        <p className="text-center text-blue-200/70 mt-3 mb-10">
-          Challenge claims through structured reasoning and intelligent rebuttal.
-        </p>
+          <h1 className="text-4xl font-bold text-white">Refute</h1>
+          <p className="text-neutral-400">
+            Challenge a claim. Reveal structured reasoning.
+          </p>
+        </header>
 
-        <div className="bg-neutral-900/80 rounded-3xl p-8 border border-white/10">
+        {/* Input */}
+        <section className="glass rounded-2xl p-6 space-y-5 glow-blue">
           <textarea
+            className="w-full bg-transparent text-white placeholder-neutral-500 resize-none focus:outline-none text-lg"
+            rows={4}
+            placeholder="Enter a claim to challenge..."
             value={claim}
             onChange={(e) => setClaim(e.target.value)}
-            placeholder="Enter a claim you want to challenge…"
-            className="w-full h-32 bg-black/60 rounded-xl p-4"
           />
 
           <button
-            onClick={handleRefute}
+            onClick={handleSubmit}
             disabled={loading}
-            className="mt-6 w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500"
+            className="w-full py-4 rounded-xl bg-white text-black font-semibold text-lg hover:bg-neutral-200 transition"
           >
-            {loading ? "Refuting..." : "Refute Claim"}
+            {loading ? "Analyzing…" : "Refute Claim"}
           </button>
+        </section>
 
-          {result && (
-            <div className="mt-8 space-y-4">
-              <p><b>Verdict:</b> {result.verdict}</p>
-              <p><b>Argument:</b> {result.argument}</p>
-              <p><b>Counter-Argument:</b> {result.counter_argument}</p>
-              <p><b>Reasoning:</b> {result.reasoning}</p>
+        {/* Results */}
+        {result && (
+          <section className="space-y-8 animate-fade-in">
+            <div className="glass glow-red rounded-xl p-6 border border-red-700">
+              <h2 className="text-sm uppercase text-red-400">Verdict</h2>
+              <p className="text-3xl font-bold">{result.verdict}</p>
             </div>
-          )}
-        </div>
+
+            <div className="glass glow-blue rounded-xl p-6 border border-blue-700">
+              <h2 className="text-blue-400 font-semibold mb-2">
+                Argument (User Claim)
+              </h2>
+              <p>{result.argument}</p>
+            </div>
+
+            <div className="glass glow-red rounded-xl p-6 border border-red-700">
+              <h2 className="text-red-400 font-semibold mb-2">
+                Counter-Argument (AI Challenge)
+              </h2>
+              <p>{result.counter_argument}</p>
+            </div>
+
+            <div className="glass glow-yellow rounded-xl p-6 border border-yellow-600">
+              <h2 className="text-yellow-400 font-semibold mb-3">
+                Reasoning
+              </h2>
+              <ol className="list-decimal ml-6 space-y-2">
+                {result.reasoning.map((r, i) => (
+                  <li key={i}>{r}</li>
+                ))}
+              </ol>
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

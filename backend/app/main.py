@@ -1,44 +1,45 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import os
+
+from app.services.gemini_service import refute_claim
 
 load_dotenv()
 
-from orchestrator import run_marathon_refutation
-
 app = FastAPI(
-    title="Refute — Marathon Agent API",
-    description="Multi-step autonomous reasoning using Gemini agents",
-    version="2.0"
+    title="Refute — Structured Reasoning API",
+    description="Evaluates claims using Gemini 3 with deterministic, structured reasoning",
+    version="3.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
-class MarathonRequest(BaseModel):
-    statement: str
+class RefuteRequest(BaseModel):
+    claim: str
 
 
-class MarathonResponse(BaseModel):
-    final_verdict: str
-    final_confidence: int
-    thought_state: dict
+class RefuteResponse(BaseModel):
+    verdict: str
+    argument: str
+    counter_argument: str
+    reasoning: list
 
 
-@app.post("/refute-marathon", response_model=MarathonResponse)
-def refute_marathon(request: MarathonRequest):
+@app.post("/refute", response_model=RefuteResponse)
+def refute(request: RefuteRequest):
     """
-    Executes the Marathon Agent reasoning loop for a given claim.
+    Evaluate a claim and return structured reasoning.
     """
-
     try:
-        result = run_marathon_refutation(request.statement)
-
-        return {
-            "final_verdict": result["final_verdict"],
-            "final_confidence": result["final_confidence"],
-            "thought_state": result["thought_state"]
-        }
-
+        return refute_claim(request.claim)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -48,3 +48,65 @@ body {
   animation: drift 18s ease-in-out infinite;
   filter: blur(40px);
 }
+
+.particle-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle, rgba(59,130,246,0.15) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 60px 60px, 120px 120px;
+  animation: moveParticles 40s linear infinite;
+}
+
+@keyframes moveParticles {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(-200px, -200px);
+  }
+}
+
+.ai-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    120deg,
+    #0b1020,
+    #0b0f1f,
+    #120b2a
+  );
+  background-size: 200% 200%;
+  animation: gradientShift 18s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+
+.glass {
+  background: rgba(17,17,24,0.75);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.glow-blue {
+  box-shadow: 0 0 40px rgba(59,130,246,0.15);
+}
+.glow-red {
+  box-shadow: 0 0 40px rgba(239,68,68,0.15);
+}
+.glow-yellow {
+  box-shadow: 0 0 40px rgba(234,179,8,0.15);
+}
