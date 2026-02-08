@@ -48,7 +48,7 @@ This architecture ensures that AI reasoning remains **controlled, explainable, a
 ## 5. Video Demo
 
 **Demo Video:**  
-_Coming soon_
+https://youtu.be/RdiXknRD2eU
 
 ## 6. Future Improvements
 
