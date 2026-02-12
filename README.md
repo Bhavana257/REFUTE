@@ -62,3 +62,8 @@ Planned enhancements for REFUTE include:
 
 This project was developed as part of a hackathon submission and is intended for educational and experimental purposes.
 
+## 8. API Key Notice
+
+The API key originally included for demonstration purposes has been disabled due to security considerations.
+
+To run this project, please provide a valid Google Gemini API key as an environment variable. The existing implementation works with any valid key.
